@@ -1,0 +1,75 @@
+{
+    "value0": {
+        "cam.T_i_c": [
+            {
+                "px": 0.0,
+                "py": 0.0,
+                "pz": 0.0,
+                "qx": 0.0,
+                "qy": 0.0,
+                "qz": 0.0,
+                "qw": 1.0
+            }
+        ],
+        "cam.intrinsics": [
+            {
+                "fx": 381.09725288248986,
+                "fy": 381.0077839674523,
+                "cx": 638.7857719061724,
+                "cy": 514.5153150888917,
+                "k1": 0.006171309112390865,
+                "k2": -0.0027771670198744509,
+                "k3": 0.0001532037182662971,
+                "k4": -0.00022559797233054002
+            }
+        ],
+        "cam.accel_bias": {
+            "value0": 0.0,
+            "value1": 0.0,
+            "value2": 0.0,
+            "value3": 0.0,
+            "value4": 0.0,
+            "value5": 0.0,
+            "value6": 0.0,
+            "value7": 0.0,
+            "value8": 0.0
+        },
+        "cam.gyro_bias": {
+            "value0": 0.0,
+            "value1": 0.0,
+            "value2": 0.0,
+            "value3": 0.0,
+            "value4": 0.0,
+            "value5": 0.0,
+            "value6": 0.0,
+            "value7": 0.0,
+            "value8": 0.0,
+            "value9": 0.0,
+            "value10": 0.0,
+            "value11": 0.0
+        },
+        "cam.accelerometer_noise_var": 0.0004,
+        "cam.gyroscope_noise_var": 0.000002,
+        "cam.T_moc_w": {
+            "px": 0.0,
+            "py": 0.0,
+            "pz": 0.0,
+            "qx": 0.0,
+            "qy": 0.0,
+            "qz": 0.0,
+            "qw": 1.0
+        },
+        "cam.T_i_mark": {
+            "px": 0.0,
+            "py": 0.0,
+            "pz": 0.0,
+            "qx": 0.0,
+            "qy": 0.0,
+            "qz": 0.0,
+            "qw": 1.0
+        },
+        "cam.mocap_time_offset_ns": 0,
+        "cam.mocap_to_imu_offset_ns": 0,
+        "cam.cam_time_offset_ns": 0
+    }
+}

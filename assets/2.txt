@@ -1,0 +1,2 @@
+<pose>0.0 -0.045 0.01 -0.0872664 -0.0872664 -0.0872664</pose>
+ <horizontal_fov>2.9670597</horizontal_fov>
