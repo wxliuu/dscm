@@ -31,6 +31,8 @@ const int nDelayTimes = 2;
 string sData_path = "/root/lwx_dataset/EuRoC/V1_03_difficult/mav0/";
 string sConfig_path = sData_path + "cam0/data.csv";
 
+#define _USE_THE_SAME_INTRINSICS_
+
 
 int image_width = 752, image_height = 480;
 
@@ -78,8 +80,7 @@ const cv::Mat K_right = ( cv::Mat_<double> ( 3,3 ) << _fx1,   0.0,              
 
 const cv::Mat D_right = ( cv::Mat_<double> ( 5,1 ) << k1, k2, p1, p2, 0.000000);
 
-
-
+cv::Mat map_x_cam0_final, map_y_cam0_final, map_x_cam1_final, map_y_cam1_final;
 
 void removeNewline(std::string& str) {
     if (!str.empty() && str.back() == '\n') {
@@ -247,6 +248,160 @@ void stereoRectifyAndUndistort(const Mat& img0, const Mat& img1) {
 
 }
 
+// improved version on 2025-2-26
+void stereoRectifyAndUndistort() {
+    // 1. Read the camera calibration parameters
+    // 2. Read the stereo calibration parameters
+    // 3. Rectify the stereo images
+    // 4. Undistort the stereo images
+    // 5. Display the stereo images
+
+
+    cv::Mat R1, R2, P1, P2, Q;
+    cv::Mat map_stereorectify_cam0_x, map_stereorectify_cam0_y, map_stereorectify_cam1_x, map_stereorectify_cam1_y;
+
+#if defined(_USE_THE_SAME_INTRINSICS_)
+    Mat cameraMatrixL = (Mat_<double>(3,3) << fx0, 0, cx0, 0, fy0, cy0, 0, 0, 1);
+    Mat cameraMatrixR = (Mat_<double>(3,3) << fx1, 0, cx1, 0, fy1, cy1, 0, 0, 1);
+#else
+    Mat cameraMatrixL = K_left;
+    Mat cameraMatrixR = K_right;
+#endif
+
+    cv::stereoRectify(cameraMatrixL, D_left, cameraMatrixR, D_right, cv::Size(image_width, image_height), extrinsic_R, extrinsic_t, R1, R2, P1, P2, Q);
+    cv::initUndistortRectifyMap(cameraMatrixL, D_left, R1, P1, cv::Size(image_width, image_height), CV_32FC1, map_stereorectify_cam0_x, map_stereorectify_cam0_y);
+    cv::initUndistortRectifyMap(cameraMatrixR, D_right, R2, P2, cv::Size(image_width, image_height), CV_32FC1, map_stereorectify_cam1_x, map_stereorectify_cam1_y);
+
+    // img0
+    // Mat map_x(img0.size(), CV_32F);
+    // Mat map_y(img0.size(), CV_32F);
+
+    Mat map_undistort_cam0_x(cv::Size(image_width, image_height), CV_32FC1);
+    Mat map_undistort_cam0_y(cv::Size(image_width, image_height), CV_32FC1);
+
+    Mat map_undistort_cam1_x(image_height, image_width, CV_32FC1);
+    Mat map_undistort_cam1_y(image_height, image_width, CV_32FC1);
+
+    for (int v = 0; v < image_height; ++v) {
+        for (int u = 0; u < image_width; ++u) {
+            // ------------------------------
+            // Step 1: 计算无畸变坐标系的3D射线（针孔模型）
+            // ------------------------------
+            double x = (u - cameraMatrixL.at<double>(0, 2)) / cameraMatrixL.at<double>(0, 0);  // 归一化x坐标
+            double y = (v - cameraMatrixL.at<double>(1, 2)) / cameraMatrixL.at<double>(1, 1);  // 归一化y坐标
+            double z = 1.0;            // 假设深度为1
+
+            // ------------------------------
+            // Step 2: 应用双球模型正向投影（公式40-45）
+            // ------------------------------
+            // 公式41: 计算d1
+            double d1 = sqrt(x*x + y*y + z*z);
+
+            // 公式43-45: 检查有效投影区域
+            double w1 = (alpha0 <= 0.5) ? (alpha0/(1-alpha0)) : ((1-alpha0)/alpha0);
+            double w2 = (w1 + xi0)/sqrt(2*w1*xi0 + xi0*xi0 + 1);
+            if (z <= -w2*d1) {
+                map_undistort_cam0_x.at<float>(v, u) = -1;
+                map_undistort_cam0_y.at<float>(v, u) = -1;
+                continue;
+            }
+
+            // 公式42: 计算d2
+            double term_z = xi0*d1 + z;
+            double d2 = sqrt(x*x + y*y + term_z*term_z);
+
+            // 公式40: 计算畸变坐标
+            double denominator = alpha0*d2 + (1-alpha0)*term_z;
+            if (fabs(denominator) < 1e-9) {
+                map_undistort_cam0_x.at<float>(v, u) = -1;
+                map_undistort_cam0_y.at<float>(v, u) = -1;
+                continue;
+            }
+
+            double u_dist = fx0*(x/denominator) + cx0;
+            double v_dist = fy0*(y/denominator) + cy0;
+
+            // ------------------------------
+            // Step 3: 建立映射关系
+            // ------------------------------
+            // 注意这里映射方向是 undistorted -> distorted
+            map_undistort_cam0_x.at<float>(v, u) = static_cast<float>(u_dist);
+            map_undistort_cam0_y.at<float>(v, u) = static_cast<float>(v_dist);
+
+        }
+    }
+
+    // Mat left_rectified, right_rectified;
+    // cv::remap(img0, left_rectified, map_x, map_y, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0));
+
+
+    // img1
+    for (int v = 0; v < image_height; ++v) {
+        for (int u = 0; u < image_width; ++u) {
+            // ------------------------------
+            // Step 1: 计算无畸变坐标系的3D射线（针孔模型）
+            // ------------------------------
+            double x = (u - cameraMatrixR.at<double>(0, 2)) / cameraMatrixR.at<double>(0, 0);  // 归一化x坐标
+            double y = (v - cameraMatrixR.at<double>(1, 2)) / cameraMatrixR.at<double>(1, 1);  // 归一化y坐标
+            double z = 1.0;            // 假设深度为1
+
+            // ------------------------------
+            // Step 2: 应用双球模型正向投影（公式40-45）
+            // ------------------------------
+            // 公式41: 计算d1
+            double d1 = sqrt(x*x + y*y + z*z);
+
+            // 公式43-45: 检查有效投影区域
+            double w1 = (alpha1 <= 0.5) ? (alpha1/(1-alpha1)) : ((1-alpha1)/alpha1);
+            double w2 = (w1 + xi1)/sqrt(2*w1*xi1 + xi1*xi1 + 1);
+            if (z <= -w2*d1) {
+                map_undistort_cam1_x.at<float>(v, u) = -1;
+                map_undistort_cam1_y.at<float>(v, u) = -1;
+                continue;
+            }
+
+            // 公式42: 计算d2
+            double term_z = xi1*d1 + z;
+            double d2 = sqrt(x*x + y*y + term_z*term_z);
+
+            // 公式40: 计算畸变坐标
+            double denominator = alpha1*d2 + (1-alpha1)*term_z;
+            if (fabs(denominator) < 1e-9) {
+                map_undistort_cam1_x.at<float>(v, u) = -1;
+                map_undistort_cam1_y.at<float>(v, u) = -1;
+                continue;
+            }
+
+            double u_dist = fx1*(x/denominator) + cx1;
+            double v_dist = fy1*(y/denominator) + cy1;
+
+            // ------------------------------
+            // Step 3: 建立映射关系
+            // ------------------------------
+            // 注意这里映射方向是 undistorted -> distorted
+            map_undistort_cam1_x.at<float>(v, u) = static_cast<float>(u_dist);
+            map_undistort_cam1_y.at<float>(v, u) = static_cast<float>(v_dist);
+
+        }
+    }
+
+    // cv::remap(img1, right_rectified, map_x, map_y, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0));
+
+    cv::remap(map_undistort_cam0_x, map_x_cam0_final, map_stereorectify_cam0_x, map_stereorectify_cam0_y, cv::INTER_CUBIC);
+    cv::remap(map_undistort_cam0_y, map_y_cam0_final, map_stereorectify_cam0_x, map_stereorectify_cam0_y, cv::INTER_CUBIC);
+    cv::remap(map_undistort_cam1_x, map_x_cam1_final, map_stereorectify_cam1_x, map_stereorectify_cam1_y, cv::INTER_CUBIC);
+    cv::remap(map_undistort_cam1_y, map_y_cam1_final, map_stereorectify_cam1_x, map_stereorectify_cam1_y, cv::INTER_CUBIC);
+
+    // Mat canvas;
+    // hconcat(left_rectified, right_rectified, canvas);
+    // for (int i = 0; i < canvas.rows; i += 32)
+    //     line(canvas, Point(0, i), Point(canvas.cols, i), Scalar(0, 255, 0), 1);
+
+    // imshow("Rectified", canvas);
+    // waitKey(0);
+
+}
+
 int main(int argc, char* argv[])
 {
 
@@ -269,7 +424,9 @@ int main(int argc, char* argv[])
 
         return 0;
     } 
-#endif    
+#endif
+
+    stereoRectifyAndUndistort();
 
 #if 1  
     // 打开文件
@@ -302,7 +459,7 @@ int main(int argc, char* argv[])
         // filename.erase(filename.find_last_not_of("\r\n") + 1);
         filename = std::regex_replace(filename, std::regex("[\r\n]+$"), "");
 
-        filename = "1403715913534057984.png";
+        // filename = "1403715913534057984.png";
 
         // read image0
         string image0Path = sData_path + "cam0/data/" + filename;
@@ -338,7 +495,25 @@ int main(int argc, char* argv[])
 			return -1;
 		}
 
-        stereoRectifyAndUndistort(img0, img1);
+        // stereoRectifyAndUndistort(img0, img1);
+
+        Mat left_rectified, right_rectified;
+        left_rectified = Mat::zeros(img0.size(), img0.type());
+        right_rectified = Mat::zeros(img1.size(), img1.type()); // 这样对齐后，多余的部分应该就是黑色的区域
+
+        cv::remap(img0, left_rectified, map_x_cam0_final, map_y_cam0_final, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0));
+        cv::remap(img1, right_rectified, map_x_cam1_final, map_y_cam1_final, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0));
+        // cv::remap(img0, left_rectified, map_x_cam0_final, map_y_cam0_final, cv::INTER_LINEAR);
+        // cv::remap(img1, right_rectified, map_x_cam1_final, map_y_cam1_final, cv::INTER_LINEAR);
+
+        // 可视化结果
+        Mat canvas;
+        hconcat(left_rectified, right_rectified, canvas);
+        for (int i = 0; i < canvas.rows; i += 32)
+            cv::line(canvas, Point(0, i), Point(canvas.cols, i), Scalar(0, 255, 0), 1);
+
+        imshow("Rectified", canvas);
+        waitKey(1);
 
         // cv::imshow("SOURCE IMAGE", img0);
 		// cv::waitKey(1);
