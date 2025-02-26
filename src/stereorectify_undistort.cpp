@@ -263,7 +263,7 @@ void stereoRectifyAndUndistort() {
 #if defined(_USE_THE_SAME_INTRINSICS_)
     Mat cameraMatrixL = (Mat_<double>(3,3) << fx0, 0, cx0, 0, fy0, cy0, 0, 0, 1);
     Mat cameraMatrixR = (Mat_<double>(3,3) << fx1, 0, cx1, 0, fy1, cy1, 0, 0, 1);
-#else
+#else // use respective intrinsic parameters
     Mat cameraMatrixL = K_left;
     Mat cameraMatrixR = K_right;
 #endif
