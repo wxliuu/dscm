@@ -40,7 +40,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/include
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=rv64gcv_zfh_zvfh1p0") # support vfloat16
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=rv64gcv_zba_zbb_zbc_zbs -fno-tree-vectorize -fno-tree-loop-vectorize")
 
-# find_package(Eigen3 REQUIRED)
+find_package(Eigen3 REQUIRED)
 # find_package(OpenCV REQUIRED)
 find_package(OpenCV 4 REQUIRED)
 # find_package(TBB REQUIRED)
@@ -96,6 +96,25 @@ add_executable(dscm7_undistort
 target_link_libraries(dscm7_undistort ${OpenCV_LIBS})
 
 add_executable(fx src/calc_fx.cpp)
+
+add_executable(stereorectify_undistort
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/stereorectify_undistort.cpp
+)
+
+target_link_libraries(stereorectify_undistort ${OpenCV_LIBS})
+
+
+add_executable(stereorectify_undistort2
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/stereorectify_undistort2.cpp
+)
+
+target_link_libraries(stereorectify_undistort2 ${OpenCV_LIBS})
+
+add_executable(compute_extrinsic
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/compute_extrinsic.cpp
+)
+
+target_link_libraries(compute_extrinsic Eigen3::Eigen)
 
 # add_executable(test1
 #   ${CMAKE_CURRENT_SOURCE_DIR}/src/test1.cpp
