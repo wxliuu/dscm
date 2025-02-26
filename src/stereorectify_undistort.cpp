@@ -518,9 +518,13 @@ int main(int argc, char* argv[])
         // cv::imshow("SOURCE IMAGE", img0);
 		// cv::waitKey(1);
 
+        // save rectified images
+        cv::imwrite("/root/lwx_dataset/EuRoC/V1_03_difficult_rectified/cam0/" + filename, left_rectified);
+        cv::imwrite("/root/lwx_dataset/EuRoC/V1_03_difficult_rectified/cam1/" + filename, right_rectified);
+
         // usleep(50000*nDelayTimes);
         // std::this_thread::sleep_for(std::chrono::milliseconds(50 * nDelayTimes));
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     // 关闭文件
