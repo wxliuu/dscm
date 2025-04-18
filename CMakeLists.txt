@@ -116,6 +116,19 @@ add_executable(compute_extrinsic
 
 target_link_libraries(compute_extrinsic Eigen3::Eigen)
 
+
+add_executable(compute_tum_extrinsic
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/compute_tum_extrinsic.cpp
+)
+
+target_link_libraries(compute_tum_extrinsic Eigen3::Eigen)
+
+add_executable(stereorectify_undistort_tum
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/stereorectify_undistort_tum.cpp
+)
+
+target_link_libraries(stereorectify_undistort_tum ${OpenCV_LIBS})
+
 # add_executable(test1
 #   ${CMAKE_CURRENT_SOURCE_DIR}/src/test1.cpp
 #   ${CMAKE_CURRENT_SOURCE_DIR}/src/wx_lkpyramid.cpp
