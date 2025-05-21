@@ -6,6 +6,8 @@
 // undistort image: 1. ds unprojection 2. pinhole projection
 // use the same fx.
 
+// Multiple holes appeared in the image after processing.
+
 // deepseek
 
 #include <opencv2/opencv.hpp>
@@ -91,18 +93,18 @@ Mat undistortDoubleSphere(const Mat& distorted_img,
             }
             
             // 针孔投影公式
-            double u_src = fx * (X / Z) + cx;
-            double v_src = fy * (Y / Z) + cy;
+            double u_dst = fx * (X / Z) + cx;
+            double v_dst = fy * (Y / Z) + cy;
 
             // 保存映射关系
-            // map_x.at<float>(v, u) = static_cast<float>(u_src);
-            // map_y.at<float>(v, u) = static_cast<float>(v_src);
+            // map_x.at<float>(v, u) = static_cast<float>(u_dst);
+            // map_y.at<float>(v, u) = static_cast<float>(v_dst);
 
             // modified on 2025-2-22
-            if (u_src >= 0 && v_src >= 0 && u_src < distorted_img.cols && v_src < distorted_img.rows)
+            if (u_dst >= 0 && v_dst >= 0 && u_dst < distorted_img.cols && v_dst < distorted_img.rows)
             {
-                map_x.at<float>(v_src, u_src) = static_cast<float>(u);
-                map_y.at<float>(v_src, u_src) = static_cast<float>(v);
+                map_x.at<float>(v_dst, u_dst) = static_cast<float>(u);
+                map_y.at<float>(v_dst, u_dst) = static_cast<float>(v);
             }
         }
     }
@@ -124,7 +126,8 @@ Mat undistortDoubleSphere(const Mat& distorted_img,
 // 示例使用
 int main() {
     // 读取畸变图像
-    Mat distorted_img = imread("/home/lwx/dev/cpp_ws/dscm/assets/screen_20_double-sphere.jpg");
+    // Mat distorted_img = imread("/home/lwx/dev/cpp_ws/dscm/assets/screen_20_double-sphere.jpg");
+    Mat distorted_img = imread("../assets/screen_20_double-sphere.jpg");
     if (distorted_img.empty()) {
         cerr << "Error: Could not load image!" << endl;
         return -1;

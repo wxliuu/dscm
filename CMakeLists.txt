@@ -129,6 +129,13 @@ add_executable(stereorectify_undistort_tum
 
 target_link_libraries(stereorectify_undistort_tum ${OpenCV_LIBS})
 
+
+add_executable(ds_stereo_rectify
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/ds_stereo_rectify.cpp
+)
+
+target_link_libraries(ds_stereo_rectify ${OpenCV_LIBS})
+
 # add_executable(test1
 #   ${CMAKE_CURRENT_SOURCE_DIR}/src/test1.cpp
 #   ${CMAKE_CURRENT_SOURCE_DIR}/src/wx_lkpyramid.cpp
